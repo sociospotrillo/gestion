@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fiesta Nacional del Potrillo — Gestión de Socios</title>
+  <link rel="icon" type="image/jpeg" href="./logo.jpg" />
+  <link rel="apple-touch-icon" href="./logo.jpg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            potrillo: {
+              bosque: '#143624',
+              campo: '#1E4D34',
+              hoja: '#2B6B48',
+              tierra: '#4A2C18',
+              cuero: '#7C4A27',
+              trigo: '#D99B26',
+              oro: '#F4C44E',
+              crema: '#FAF8F4',
+              arena: '#EFECE6'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #F4F2ED;
+      color: #1C1917;
+    }
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+      animation: fadeSlideIn 0.22s ease-out;
+    }
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #print-area,
+      #print-area * {
+        visibility: visible !important;
+      }
+      #print-area {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 8mm !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+      }
+    }
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #EFECE6;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #C7BFB3;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9E9486;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-potrillo-trigo/30 selection:text-potrillo-tierra">
+
+  <!-- ÁREA OCULTA PARA IMPRESIÓN DE CARNET O RECIBO -->
+  <div id="print-area" class="hidden"></div>
+
+  <!-- TOAST NOTIFICACIONES -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-[calc(100%-2.5rem)] pointer-events-none"></div>
+
+  <!-- MODAL DE CONFIRMACIÓN PERSONALIZADO (SIN confirm()) -->
+  <div id="custom-confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/75 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden">
+      <div class="bg-potrillo-tierra px-6 py-4 text-white flex items-center gap-2.5 border-b-2 border-potrillo-trigo">
+        <span class="text-xl">⚠️</span>
+        <h3 id="custom-confirm-title" class="font-extrabold text-base">Confirmar Acción</h3>
+      </div>
+      <div class="p-6 space-y-4">
+        <p id="custom-confirm-message" class="text-xs sm:text-sm text-stone-700 leading-relaxed whitespace-pre-line"></p>
+        <div class="pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5">
+          <button id="custom-confirm-cancel" type="button" class="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 font-semibold text-xs hover:bg-stone-100 transition">
+            Cancelar
+          </button>
+          <button id="custom-confirm-ok" type="button" class="px-5 py-2 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold text-xs shadow-sm transition">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ESCÁNER QR CON CÁMARA -->
+  <div id="qr-scanner-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/85 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden">
+      <div class="bg-potrillo-bosque px-6 py-4 text-white flex items-center justify-between border-b-2 border-potrillo-trigo">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">📷</span>
+          <div>
+            <h3 class="font-extrabold text-base">Escanear Carnet QR</h3>
+            <p class="text-[11px] text-emerald-200/85">Apuntá la cámara al código QR del carnet</p>
+          </div>
+        </div>
+        <button id="btn-close-qr-scanner" type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-sm transition">
+          ✕
+        </button>
+      </div>
+      <div class="p-5 space-y-3">
+        <div id="qr-reader-container" class="w-full rounded-xl overflow-hidden border border-stone-300 bg-stone-950 min-h-[260px]"></div>
+        <p id="qr-scanner-status" class="text-xs text-center font-semibold text-stone-600">
+          Iniciando cámara...
+        </p>
+        <div class="pt-2 border-t border-stone-100 flex justify-end">
+          <button id="btn-cancel-qr-scanner" type="button" class="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 font-semibold text-xs hover:bg-stone-100 transition">
+            Cerrar Cámara
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- PANTALLA DE LOGIN DEL SISTEMA DE GESTIÓN (ADMIN / OPERADORES)         -->
+  <!-- ===================================================================== -->
+  <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-potrillo-bosque via-potrillo-campo to-potrillo-tierra p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden my-auto">
+      <div class="bg-potrillo-bosque px-5 py-5 text-white border-b-4 border-potrillo-trigo flex items-center gap-3.5">
+        <div class="w-16 h-16 rounded-2xl bg-white border-2 border-potrillo-trigo p-1.5 flex items-center justify-center shrink-0 shadow-md overflow-hidden">
+          <img src="./logo.jpg" alt="Logo Fiesta Nacional del Potrillo" class="max-w-full max-h-full object-contain rounded-lg" />
+        </div>
+        <div class="min-w-0 text-left">
+          <span class="text-[10px] font-extrabold uppercase tracking-widest text-potrillo-oro">Coronel Vidal · Mar Chiquita</span>
+          <h2 class="text-lg sm:text-xl font-extrabold tracking-tight leading-tight mt-0.5">
+            FIESTA NACIONAL DEL POTRILLO
+          </h2>
+          <p class="text-xs text-amber-100/90 font-semibold mt-0.5">
+            Sistema de Gestión de Socios
+          </p>
+        </div>
+      </div>
+
+      <form id="form-login" class="p-6 space-y-4">
+        <div id="login-error-box" class="hidden rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-xs font-bold text-rose-700"></div>
+
+        <div>
+          <label for="login-username" class="block text-xs font-bold uppercase tracking-wide text-stone-700 mb-1">
+            Usuario u Operador *
+          </label>
+          <input
+            id="login-username"
+            type="text"
+            required
+            autocomplete="username"
+            placeholder="Ej: admin o usuario operador"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-potrillo-campo text-sm font-semibold"
+          />
+        </div>
+
+        <div>
+          <label for="login-password" class="block text-xs font-bold uppercase tracking-wide text-stone-700 mb-1">
+            Contraseña *
+          </label>
+          <input
+            id="login-password"
+            type="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:outline-none focus:ring-2 focus:ring-potrillo-campo text-sm font-medium"
+          />
+        </div>
+
+        <button
+          id="btn-login-submit"
+          type="submit"
+          class="w-full py-3 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-extrabold text-sm shadow-md transition flex items-center justify-center gap-2"
+        >
+          <span>🔐</span>
+          <span>Ingresar al Sistema</span>
+        </button>
+
+        <div class="pt-3 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
+          <span>Acceso restringido</span>
+          <button
+            id="btn-open-recovery"
+            type="button"
+            class="font-bold text-potrillo-tierra hover:text-potrillo-cuero underline transition"
+          >
+            Recuperar clave Admin
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CAMBIO OBLIGATORIO DE CONTRASEÑA DE OPERADOR -->
+  <div id="force-pass-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/80 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden">
+      <div class="bg-potrillo-bosque px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+        <h3 class="font-extrabold text-base">🔑 Primer Ingreso — Nueva Contraseña</h3>
+        <p class="text-[11px] text-emerald-200/85">Creá tu clave personal antes de operar en el sistema</p>
+      </div>
+      <form id="form-force-pass" class="p-6 space-y-4">
+        <div id="force-pass-err" class="hidden rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700"></div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-stone-700 mb-1">Nueva Contraseña (mínimo 6 caracteres) *</label>
+          <input id="fp-new" type="password" required minlength="6" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase text-stone-700 mb-1">Confirmar Contraseña *</label>
+          <input id="fp-confirm" type="password" required minlength="6" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+        </div>
+        <div class="pt-2 flex justify-end">
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold text-xs shadow-sm">
+            Guardar y Continuar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL RECUPERACIÓN CONTRASEÑA ADMIN -->
+  <div id="recovery-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/80 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden">
+      <div class="bg-potrillo-tierra px-6 py-4 text-white flex items-center justify-between border-b-2 border-potrillo-trigo">
+        <h3 class="font-extrabold text-base">📧 Recuperar Clave Administrador</h3>
+        <button id="btn-close-recovery" type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-sm">✕</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs">
+        <p class="text-stone-600 leading-relaxed">
+          Se enviará un código de verificación de 6 dígitos al correo de recuperación configurado en Google Sheets.
+        </p>
+        <div id="rec-status-box" class="hidden rounded-xl p-3 font-semibold"></div>
+        <button id="btn-send-rec-code" type="button" class="w-full py-2.5 rounded-xl bg-potrillo-bosque hover:bg-potrillo-campo text-white font-bold">
+          Enviar Código al Correo
+        </button>
+        <form id="form-verify-rec" class="space-y-3 pt-3 border-t border-stone-100">
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Código de 6 dígitos *</label>
+            <input id="rec-code" type="text" required maxlength="6" placeholder="123456" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Nueva Clave Admin *</label>
+            <input id="rec-new-pass" type="password" required minlength="6" class="w-full px-3 py-2 rounded-xl border border-stone-300" />
+          </div>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold">
+            Restablecer Clave Admin
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CARNET OFICIAL DEL SOCIO (8,5 × 5,5 cm CON QR EN MARGEN INFERIOR DERECHO) -->
+  <div id="admin-carnet-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/80 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-lg w-full overflow-hidden">
+      <div class="bg-potrillo-bosque px-6 py-4 text-white flex items-center justify-between border-b-2 border-potrillo-trigo">
+        <div>
+          <h3 class="font-extrabold text-base">🪪 Credencial Oficial de Socio</h3>
+          <p class="text-[11px] text-emerald-200/85">Formato estándar 8,5 cm × 5,5 cm con código QR</p>
+        </div>
+        <button id="btn-close-admin-carnet" type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-sm">✕</button>
+      </div>
+
+      <div class="p-6 bg-stone-100 space-y-5">
+        <div class="flex justify-center overflow-x-auto py-2">
+          <div
+            id="admin-carnet-card"
+            style="width: 340px; height: 220px; min-width: 340px;"
+            class="bg-white rounded-xl border-2 border-potrillo-bosque shadow-xl overflow-hidden flex flex-col justify-between relative select-none"
+          >
+            <!-- BANDA SUPERIOR -->
+            <div class="bg-potrillo-bosque px-3 py-1.5 flex items-center justify-between border-b-2 border-potrillo-trigo relative z-10">
+              <span class="text-[10px] font-extrabold tracking-widest uppercase text-white">
+                CARNET DE SOCIO
+              </span>
+              <span id="admin-carnet-nro" class="font-mono font-extrabold text-xs text-potrillo-oro bg-black/25 px-2 py-0.5 rounded">
+                POT-00001
+              </span>
+            </div>
+
+            <!-- CUERPO CENTRAL CON LOGO INTACTO Y QR EN MARGEN INFERIOR DERECHO -->
+            <div class="flex-1 px-3 py-1.5 flex flex-col justify-between bg-white relative overflow-hidden">
+              <img
+                id="admin-carnet-bg-img"
+                src=""
+                alt=""
+                class="hidden absolute inset-0 w-full h-full object-cover pointer-events-none"
+              />
+              <div
+                id="admin-carnet-bg-overlay"
+                class="hidden absolute inset-0 bg-white/80 pointer-events-none"
+              ></div>
+
+              <p class="relative z-10 text-center text-[10.5px] font-extrabold tracking-tight uppercase text-potrillo-bosque leading-none pt-0.5">
+                FIESTA NACIONAL DEL POTRILLO
+              </p>
+
+              <div class="relative z-10 flex items-stretch gap-2.5 my-auto py-0.5">
+                <div class="w-[96px] h-[108px] shrink-0 flex items-center justify-center border-r border-stone-300/80 pr-2.5 my-auto">
+                  <img
+                    id="admin-carnet-logo-img"
+                    src="./logo.jpg"
+                    alt="Logo Fiesta Nacional del Potrillo"
+                    class="max-w-full max-h-full object-contain rounded"
+                  />
+                </div>
+
+                <div class="flex-1 min-w-0 flex flex-col justify-between text-left">
+                  <div>
+                    <span class="block text-[8px] font-extrabold uppercase tracking-wider text-potrillo-tierra">
+                      Nombre y Apellido
+                    </span>
+                    <p id="admin-carnet-nombre" class="text-[12px] font-extrabold text-stone-900 leading-tight line-clamp-2">
+                      -
+                    </p>
+                  </div>
+
+                  <div class="flex items-end justify-between gap-1.5 pt-1 border-t border-stone-200/80">
+                    <div class="min-w-0 space-y-1">
+                      <div>
+                        <span class="block text-[7.5px] font-extrabold uppercase tracking-wider text-potrillo-tierra">
+                          DNI
+                        </span>
+                        <span id="admin-carnet-dni" class="font-mono font-bold text-[11px] text-stone-900 block leading-tight">
+                          -
+                        </span>
+                      </div>
+                      <div>
+                        <span class="block text-[7.5px] font-extrabold uppercase tracking-wider text-potrillo-tierra">
+                          Nacimiento
+                        </span>
+                        <span id="admin-carnet-fnac" class="font-mono font-bold text-[11px] text-stone-900 block leading-tight">
+                          -
+                        </span>
+                      </div>
+                    </div>
+
+                    <div
+                      id="admin-carnet-qr"
+                      class="w-[52px] h-[52px] shrink-0 bg-white p-1 rounded-md border border-stone-300 shadow-2xs flex items-center justify-center overflow-hidden"
+                      title="Código QR del Socio"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <p class="relative z-10 text-center italic font-semibold text-[9px] text-potrillo-tierra leading-none pb-0.5">
+                "Nada más nuestro y sencillo, nada más tradicional"
+              </p>
+            </div>
+
+            <!-- PIE SOBRIO -->
+            <div class="relative z-10 bg-potrillo-crema border-t border-potrillo-tierra/30 px-3 py-1 flex items-center justify-between text-[9px] font-bold text-potrillo-tierra">
+              <span>Credencial Personal e Intransferible</span>
+              <span class="text-potrillo-bosque font-extrabold">Cnel. Vidal · Mar Chiquita</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-200">
+          <button id="btn-cerrar-carnet-footer" type="button" class="px-4 py-2 rounded-xl border border-stone-300 bg-white text-stone-700 font-semibold text-xs hover:bg-stone-50">
+            Cerrar
+          </button>
+          <button id="btn-imprimir-admin-carnet" type="button" class="px-5 py-2 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold text-xs shadow-sm flex items-center gap-1.5">
+            <span>🖨️</span>
+            <span>Imprimir Carnet</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDICIÓN DE DATOS DEL SOCIO -->
+  <div id="edit-socio-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/75 backdrop-blur-xs p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-xl w-full overflow-hidden my-auto">
+      <div class="bg-potrillo-bosque px-6 py-4 text-white flex items-center justify-between border-b-2 border-potrillo-trigo">
+        <h3 class="font-extrabold text-base">✏️ Editar Datos del Socio <span id="edit-socio-nro-label" class="font-mono text-potrillo-oro"></span></h3>
+        <button id="btn-close-edit-socio" type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-sm">✕</button>
+      </div>
+      <form id="form-edit-socio" class="p-6 space-y-4 text-xs">
+        <input id="edit-nro" type="hidden" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div class="sm:col-span-2">
+            <label class="block font-bold uppercase text-stone-700 mb-1">Nombre y Apellido *</label>
+            <input id="edit-nombre" type="text" required class="w-full px-3.5 py-2 rounded-xl border border-stone-300 font-semibold" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Documento (DNI) *</label>
+            <input id="edit-dni" type="text" required class="w-full px-3.5 py-2 rounded-xl border border-stone-300 font-mono uppercase" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Fecha de Nacimiento *</label>
+            <input id="edit-fnac" type="date" required class="w-full px-3.5 py-2 rounded-xl border border-stone-300 font-mono" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Teléfono</label>
+            <input id="edit-telefono" type="text" class="w-full px-3.5 py-2 rounded-xl border border-stone-300" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Correo Electrónico</label>
+            <input id="edit-email" type="email" class="w-full px-3.5 py-2 rounded-xl border border-stone-300" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block font-bold uppercase text-stone-700 mb-1">Domicilio</label>
+            <input id="edit-domicilio" type="text" class="w-full px-3.5 py-2 rounded-xl border border-stone-300" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Localidad</label>
+            <input id="edit-localidad" type="text" class="w-full px-3.5 py-2 rounded-xl border border-stone-300" />
+          </div>
+          <div>
+            <label class="block font-bold uppercase text-stone-700 mb-1">Partido</label>
+            <input id="edit-partido" type="text" class="w-full px-3.5 py-2 rounded-xl border border-stone-300" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block font-bold uppercase text-stone-700 mb-1">Provincia</label>
+            <input id="edit-provincia" type="text" class="w-full px-3.5 py-2 rounded-xl border border-stone-300" />
+          </div>
+        </div>
+        <div class="pt-3 border-t border-stone-100 flex justify-end gap-2">
+          <button id="btn-cancel-edit-socio" type="button" class="px-4 py-2 rounded-xl border border-stone-300 font-semibold text-stone-700">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold shadow-sm">💾 Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL COMPROBANTE / RECIBO DE PAGO -->
+  <div id="recibo-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-stone-950/80 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-200 max-w-md w-full overflow-hidden">
+      <div class="bg-potrillo-bosque px-6 py-4 text-white flex items-center justify-between border-b-2 border-potrillo-trigo">
+        <h3 class="font-extrabold text-base">🧾 Recibo de Pago Emitido</h3>
+        <button id="btn-close-recibo" type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-sm">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div id="recibo-preview-box" class="rounded-xl border border-stone-300 bg-potrillo-crema p-4 text-xs space-y-2"></div>
+        <div class="flex justify-end gap-2">
+          <button id="btn-cerrar-recibo-footer" type="button" class="px-4 py-2 rounded-xl border border-stone-300 font-semibold text-xs text-stone-700">Cerrar</button>
+          <button id="btn-imprimir-recibo" type="button" class="px-5 py-2 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold text-xs shadow-sm">🖨️ Imprimir Recibo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CABECERA INSTITUCIONAL CON LOGO DEL POTRILLO                          -->
+  <!-- ===================================================================== -->
+  <header class="bg-gradient-to-r from-potrillo-bosque via-potrillo-campo to-potrillo-tierra text-white shadow-lg border-b-4 border-potrillo-trigo">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex items-center gap-4 min-w-0">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border-2 border-potrillo-trigo shadow-md p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
+          <img
+            src="./logo.jpg"
+            alt="Logo Fiesta Nacional del Potrillo"
+            class="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
+        <div class="min-w-0">
+          <span class="text-xs text-emerald-200/90 font-medium">Coronel Vidal · Mar Chiquita</span>
+          <h1 class="text-lg sm:text-2xl font-extrabold tracking-tight leading-tight mt-0.5">
+            FIESTA NACIONAL DEL POTRILLO
+          </h1>
+          <p class="text-xs sm:text-sm text-amber-100/90 font-semibold mt-0.5">
+            Sistema Integral de Gestión de Socios y Cuotas
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-col items-start lg:items-end gap-2 shrink-0">
+        <div class="flex flex-wrap items-center gap-2 text-[11px] bg-black/25 px-3 py-1 rounded-full border border-white/10">
+          <span id="cloud-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="cloud-status-text" class="text-emerald-100 font-semibold">Nube Conectada</span>
+          <span>·</span>
+          <span id="header-user-badge" class="font-bold text-potrillo-oro">Admin</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            id="btn-sync-now"
+            type="button"
+            class="px-3 py-2 rounded-xl bg-emerald-900/60 hover:bg-emerald-800/80 border border-emerald-400/35 text-emerald-100 font-semibold text-xs transition flex items-center gap-1.5"
+            title="Sincronizar datos con Google Sheets"
+          >
+            <span>🔄</span>
+            <span>Sincronizar</span>
+          </button>
+          <button
+            id="btn-logout"
+            type="button"
+            class="px-3.5 py-2 rounded-xl bg-black/35 hover:bg-black/55 border border-white/20 text-amber-100 font-bold text-xs transition flex items-center gap-1.5"
+          >
+            <span>🔒</span>
+            <span>Salir</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BARRA DE NAVEGACIÓN PRINCIPAL -->
+    <nav class="bg-black/25 border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-1.5 overflow-x-auto">
+        <button type="button" data-tab="buscador" class="nav-tab-btn active px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap transition flex items-center gap-2 bg-white text-potrillo-bosque shadow-md">
+          <span>🔍</span>
+          <span>Buscador y Cuotas</span>
+        </button>
+
+        <button type="button" data-tab="alta" class="nav-tab-btn px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm whitespace-nowrap transition flex items-center gap-2 text-white/85 hover:bg-white/15">
+          <span>➕</span>
+          <span>Nuevo Socio</span>
+        </button>
+
+        <button type="button" data-tab="padron" class="nav-tab-btn px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm whitespace-nowrap transition flex items-center gap-2 text-white/85 hover:bg-white/15">
+          <span>📋</span>
+          <span>Base de Datos</span>
+          <span id="badge-total-socios" class="px-2 py-0.5 text-[11px] rounded-full bg-white/15 font-mono font-bold">0</span>
+        </button>
+
+        <button type="button" data-tab="novedades" class="nav-tab-btn px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm whitespace-nowrap transition flex items-center gap-2 text-white/85 hover:bg-white/15">
+          <span>📢</span>
+          <span>Novedades</span>
+        </button>
+
+        <button type="button" data-tab="movimientos" data-admin-only="true" class="nav-tab-btn px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm whitespace-nowrap transition flex items-center gap-2 text-white/85 hover:bg-white/15">
+          <span>💰</span>
+          <span>Caja y Movimientos</span>
+        </button>
+
+        <button type="button" data-tab="config" data-admin-only="true" class="nav-tab-btn px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm whitespace-nowrap transition flex items-center gap-2 text-white/85 hover:bg-white/15">
+          <span>⚙️</span>
+          <span>Configuración</span>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- CONTENIDO PRINCIPAL                                                   -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- TARJETAS RESUMEN SUPERIORES -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div class="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs">
+        <span class="text-[11px] font-extrabold uppercase text-stone-500">Socios Activos</span>
+        <p id="kpi-socios-activos" class="text-2xl font-extrabold font-mono text-potrillo-bosque mt-1">0</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs">
+        <span class="text-[11px] font-extrabold uppercase text-stone-500">Socios Al Día (<span class="kpi-anio-label">2026</span>)</span>
+        <p id="kpi-socios-aldia" class="text-2xl font-extrabold font-mono text-emerald-700 mt-1">0</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs">
+        <span class="text-[11px] font-extrabold uppercase text-stone-500">Valor Cuota Mensual</span>
+        <p id="kpi-valor-cuota" class="text-2xl font-extrabold font-mono text-potrillo-tierra mt-1">$1.000</p>
+      </div>
+      <div class="bg-white rounded-2xl border border-stone-200 p-4 shadow-2xs">
+        <span class="text-[11px] font-extrabold uppercase text-stone-500">Descuento Pago Anual</span>
+        <p id="kpi-desc-anual" class="text-2xl font-extrabold font-mono text-amber-700 mt-1">0%</p>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 1: BUSCADOR, ESCÁNER QR Y COBRO DE CUOTAS                   -->
+    <!-- =================================================================== -->
+    <section id="panel-buscador" class="tab-panel active space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+        <div class="bg-potrillo-bosque px-6 py-4 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold flex items-center gap-2">
+              <span>🔍</span>
+              <span>BUSCADOR DE SOCIOS Y COBRO DE CUOTAS</span>
+            </h2>
+            <p class="text-xs text-emerald-200/85">Buscá por N° de socio, DNI, apellido o escaneá el QR del carnet con la cámara.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="cobro-anio-select" class="text-xs font-semibold text-emerald-100">Año:</label>
+            <select id="cobro-anio-select" class="bg-white/15 text-white font-mono font-extrabold text-xs px-3 py-1.5 rounded-xl border border-white/25 [&>option]:text-stone-900"></select>
+          </div>
+        </div>
+
+        <div class="p-6 space-y-5">
+          <!-- BUSCADOR MANUAL + BOTÓN ESCÁNER QR -->
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+              <input
+                id="buscador-socio-input"
+                type="text"
+                placeholder="Buscar por N° Socio (POT-00001), DNI o Apellido..."
+                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-potrillo-campo"
+              />
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400">🔍</span>
+            </div>
+            <button
+              id="btn-abrir-escaner-qr"
+              type="button"
+              class="px-4 py-2.5 rounded-xl bg-potrillo-tierra hover:bg-potrillo-cuero text-white font-extrabold text-xs sm:text-sm shadow-xs transition flex items-center justify-center gap-2 shrink-0"
+              title="Escanear código QR del carnet con la cámara"
+            >
+              <span>📷</span>
+              <span>Escanear QR</span>
+            </button>
+          </div>
+
+          <!-- RESULTADOS RÁPIDOS DE BÚSQUEDA -->
+          <div id="buscador-resultados-lista" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5"></div>
+
+          <!-- FICHA Y GRILLA DE CUOTAS DEL SOCIO SELECCIONADO -->
+          <div id="socio-cobro-detalle" class="hidden rounded-2xl border border-stone-200 bg-potrillo-crema/70 p-5 space-y-5">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone-200">
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span id="det-nro-socio" class="px-2.5 py-0.5 rounded-lg bg-potrillo-bosque text-potrillo-oro font-mono font-extrabold text-xs">POT-00001</span>
+                  <span id="det-estado-badge" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold">Al Día</span>
+                </div>
+                <h3 id="det-nombre" class="text-lg font-extrabold text-stone-900 mt-1">-</h3>
+                <p class="text-xs text-stone-600">
+                  DNI: <strong id="det-dni" class="font-mono">-</strong> · Tel: <strong id="det-tel">-</strong> · Localidad: <strong id="det-loc">-</strong>
+                </p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-det-ver-carnet" type="button" class="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-300 text-stone-800 font-bold text-xs shadow-2xs">
+                  🪪 Ver Carnet QR
+                </button>
+                <button id="btn-cobrar-anual" type="button" class="px-4 py-2 rounded-xl bg-potrillo-tierra hover:bg-potrillo-cuero text-white font-extrabold text-xs shadow-sm">
+                  ⭐ Cobrar Año Completo
+                </button>
+              </div>
+            </div>
+
+            <!-- GRILLA DE 12 CUOTAS MENSUALES -->
+            <div class="space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-extrabold uppercase text-potrillo-bosque">Seleccioná las cuotas a cobrar o consultar:</span>
+                <div class="flex items-center gap-2">
+                  <button id="btn-cobrar-seleccionadas" type="button" class="px-4 py-2 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-extrabold text-xs shadow-sm disabled:opacity-40" disabled>
+                    💳 Cobrar Seleccionadas (<span id="sel-cuotas-count">0</span>)
+                  </button>
+                </div>
+              </div>
+
+              <div id="det-cuotas-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 2: ALTA DE NUEVO SOCIO                                      -->
+    <!-- =================================================================== -->
+    <section id="panel-alta" class="tab-panel space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden max-w-3xl mx-auto">
+        <div class="bg-potrillo-bosque px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+          <h2 class="text-base sm:text-lg font-extrabold flex items-center gap-2">
+            <span>➕</span>
+            <span>ALTA DE NUEVO SOCIO</span>
+          </h2>
+          <p class="text-xs text-emerald-200/85">El número de credencial (POT-XXXXX) se asigna automáticamente. Clave inicial portal: 123456.</p>
+        </div>
+
+        <form id="form-alta-socio" class="p-6 space-y-4 text-xs">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block font-bold uppercase text-stone-700 mb-1">Nombre y Apellido Completo *</label>
+              <input id="alta-nombre" type="text" required placeholder="Ej: Juan Carlos Pérez" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-semibold text-sm" />
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Documento (DNI) *</label>
+              <input id="alta-dni" type="text" required placeholder="Ej: 28456789 o M4567890" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono uppercase text-sm" />
+              <span class="text-[10px] text-stone-500">Si es menor a 10.000.000 anteponer M o F.</span>
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Fecha de Nacimiento *</label>
+              <input id="alta-fnac" type="date" required class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 font-mono text-sm" />
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Teléfono / WhatsApp</label>
+              <input id="alta-telefono" type="text" placeholder="Ej: 2265 401234" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Correo Electrónico</label>
+              <input id="alta-email" type="email" placeholder="socio@ejemplo.com" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block font-bold uppercase text-stone-700 mb-1">Domicilio</label>
+              <input id="alta-domicilio" type="text" placeholder="Calle y número" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Localidad</label>
+              <input id="alta-localidad" type="text" value="Coronel Vidal" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Partido</label>
+              <input id="alta-partido" type="text" value="Mar Chiquita" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block font-bold uppercase text-stone-700 mb-1">Provincia</label>
+              <input id="alta-provincia" type="text" value="Buenos Aires" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm" />
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-stone-100 flex justify-end gap-2.5">
+            <button type="reset" class="px-4 py-2.5 rounded-xl border border-stone-300 font-semibold text-stone-700 hover:bg-stone-50">Limpiar</button>
+            <button id="btn-guardar-socio" type="submit" class="px-6 py-2.5 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-extrabold text-sm shadow-md">
+              ✅ Registrar Socio
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 3: BASE DE DATOS DE SOCIOS (CON BOTÓN RESET CLAVE)          -->
+    <!-- =================================================================== -->
+    <section id="panel-padron" class="tab-panel space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+        <div class="bg-potrillo-bosque px-6 py-4 text-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold flex items-center gap-2">
+              <span>📋</span>
+              <span>BASE DE DATOS DE SOCIOS</span>
+            </h2>
+            <p class="text-xs text-emerald-200/85">Padrón completo, credenciales QR, edición y restablecimiento de contraseña del portal.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="padron-filtro-estado" class="bg-white/15 text-white font-bold text-xs px-3 py-1.5 rounded-xl border border-white/25 [&>option]:text-stone-900">
+              <option value="ALL">Todos los estados</option>
+              <option value="Al Día">Al Día</option>
+              <option value="Regular">Regular</option>
+              <option value="Atrasado">Atrasado</option>
+              <option value="Impago">Impago</option>
+              <option value="Anulado">Anulados</option>
+            </select>
+            <input id="padron-filtro-texto" type="text" placeholder="Filtrar padrón..." class="px-3 py-1.5 rounded-xl text-xs text-stone-900 bg-white border border-white/30" />
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-potrillo-crema border-b border-stone-200 text-[11px] font-extrabold uppercase text-stone-600">
+                <th class="py-3 px-4">N° Socio</th>
+                <th class="py-3 px-4">Nombre y Apellido</th>
+                <th class="py-3 px-4">DNI</th>
+                <th class="py-3 px-4">Localidad</th>
+                <th class="py-3 px-4">Estado Año</th>
+                <th class="py-3 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="padron-tbody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 4: GESTIÓN DE NOVEDADES Y BENEFICIOS                        -->
+    <!-- =================================================================== -->
+    <section id="panel-novedades" class="tab-panel space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+          <div class="bg-potrillo-bosque px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+            <h2 class="text-base font-extrabold">📢 Publicar Novedad en el Portal</h2>
+          </div>
+          <form id="form-novedad" class="p-6 space-y-3.5 text-xs">
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Título *</label>
+              <input id="nov-titulo" type="text" required class="w-full px-3 py-2 rounded-xl border border-stone-300 font-semibold" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold uppercase text-stone-700 mb-1">Categoría</label>
+                <select id="nov-tipo" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-semibold">
+                  <option value="Novedad">Novedad</option>
+                  <option value="Promoción">Promoción</option>
+                  <option value="Beneficio">Beneficio</option>
+                  <option value="Evento">Evento</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold uppercase text-stone-700 mb-1">Vigencia (opcional)</label>
+                <input id="nov-vigencia" type="text" placeholder="Ej: Hasta 30/11" class="w-full px-3 py-2 rounded-xl border border-stone-300" />
+              </div>
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Descripción *</label>
+              <textarea id="nov-desc" rows="3" required class="w-full px-3 py-2 rounded-xl border border-stone-300"></textarea>
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Imagen (subir archivo o pegar URL)</label>
+              <input id="nov-img-file" type="file" accept="image/*" class="w-full text-xs mb-1.5" />
+              <input id="nov-img-url" type="text" placeholder="https://..." class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono text-[11px]" />
+            </div>
+            <button id="btn-publicar-nov" type="submit" class="w-full py-2.5 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-extrabold shadow-sm">
+              ✅ Publicar Novedad
+            </button>
+          </form>
+        </div>
+
+        <div class="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+          <div class="bg-potrillo-tierra px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+            <h2 class="text-base font-extrabold">📰 Novedades Publicadas</h2>
+          </div>
+          <div id="admin-novedades-lista" class="p-6 space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 5: CAJA Y MOVIMIENTOS                                       -->
+    <!-- =================================================================== -->
+    <section id="panel-movimientos" class="tab-panel space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+        <div class="bg-potrillo-bosque px-6 py-4 text-white flex items-center justify-between">
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold">💰 MOVIMIENTOS DE CAJA Y AUDITORÍA</h2>
+            <p class="text-xs text-emerald-200/85">Historial cronológico de cobros y operaciones registradas.</p>
+          </div>
+          <span id="total-recaudado-badge" class="px-3.5 py-1.5 rounded-xl bg-black/25 font-mono font-extrabold text-xs text-potrillo-oro">
+            Total: $0
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-potrillo-crema border-b border-stone-200 text-[11px] font-extrabold uppercase text-stone-600">
+                <th class="py-3 px-4">Fecha / Hora</th>
+                <th class="py-3 px-4">Operador</th>
+                <th class="py-3 px-4">Tipo</th>
+                <th class="py-3 px-4">Detalle</th>
+                <th class="py-3 px-4 text-right">Importe</th>
+              </tr>
+            </thead>
+            <tbody id="movimientos-tbody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 6: CONFIGURACIÓN, OPERADORES Y DISEÑO DEL CARNET            -->
+    <!-- =================================================================== -->
+    <section id="panel-config" class="tab-panel space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ARANCELES Y CONEXIÓN -->
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+          <div class="bg-potrillo-bosque px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+            <h2 class="text-base font-extrabold">⚙️ Aranceles, Correo y Nube</h2>
+          </div>
+          <form id="form-config-general" class="p-6 space-y-4 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold uppercase text-stone-700 mb-1">Valor Cuota Mensual ($) *</label>
+                <input id="cfg-valor-cuota" type="number" min="1" required class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold" />
+              </div>
+              <div>
+                <label class="block font-bold uppercase text-stone-700 mb-1">Descuento Pago Anual (%)</label>
+                <input id="cfg-desc-anual" type="number" min="0" max="100" required class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono font-bold" />
+              </div>
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">Correo de Administración / Recuperación</label>
+              <input id="cfg-recovery-email" type="email" placeholder="administracion@potrillo.org.ar" class="w-full px-3 py-2 rounded-xl border border-stone-300" />
+            </div>
+            <div>
+              <label class="block font-bold uppercase text-stone-700 mb-1">URL Google Apps Script</label>
+              <input id="cfg-apps-script-url" type="url" class="w-full px-3 py-2 rounded-xl border border-stone-300 font-mono text-[11px]" />
+            </div>
+            <button type="submit" class="w-full py-2.5 rounded-xl bg-potrillo-campo hover:bg-potrillo-hoja text-white font-extrabold shadow-sm">
+              💾 Guardar Configuración
+            </button>
+          </form>
+        </div>
+
+        <!-- DISEÑO DEL CARNET Y OPERADORES -->
+        <div class="space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+            <div class="bg-potrillo-tierra px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+              <h2 class="text-base font-extrabold">🪪 Diseño del Carnet (Fondo y Logo)</h2>
+            </div>
+            <div class="p-6 space-y-3 text-xs">
+              <div>
+                <label class="block font-bold uppercase text-stone-700 mb-1">Imagen de Fondo del Carnet (opcional)</label>
+                <input id="cfg-carnet-bg-file" type="file" accept="image/*" class="w-full text-xs" />
+              </div>
+              <div class="flex gap-2">
+                <button id="btn-clear-carnet-bg" type="button" class="px-3 py-1.5 rounded-xl border border-stone-300 font-semibold text-stone-700 hover:bg-stone-50">
+                  Quitar Fondo
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+            <div class="bg-potrillo-bosque px-6 py-4 text-white border-b-2 border-potrillo-trigo">
+              <h2 class="text-base font-extrabold">👥 Operadores del Sistema</h2>
+            </div>
+            <div class="p-6 space-y-4 text-xs">
+              <form id="form-nuevo-operador" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input id="op-username" type="text" required placeholder="Usuario" class="px-3 py-2 rounded-xl border border-stone-300" />
+                <input id="op-nombre" type="text" required placeholder="Nombre completo" class="px-3 py-2 rounded-xl border border-stone-300" />
+                <button type="submit" class="px-3 py-2 rounded-xl bg-potrillo-campo text-white font-bold">+ Crear (clave 123456)</button>
+              </form>
+              <div id="operadores-lista" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bg-potrillo-bosque text-emerald-100/75 text-xs py-4 px-4 sm:px-6 mt-10 border-t border-white/10">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <span>Fiesta Nacional del Potrillo — Sistema de Gestión · Coronel Vidal, Mar Chiquita</span>
+      <span>"Nada más nuestro y sencillo, nada más tradicional"</span>
+    </div>
+  </footer>
+
+  <script>
+    // =========================================================================
+    // CONSTANTES Y ESTADO GLOBAL
+    // =========================================================================
+    const STORAGE_KEY = 'potrillo_socios_v3';
+    const SESSION_USER_KEY = 'potrillo_admin_session_user';
+    const REPO_LOGO_PATH = './logo.jpg';
+    const DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygVocvnzJuEvcqNn5jsKXxSVZ3_VMsCqJC2_zfY8bQ3rNfGCIUw06arFpa2sIscnZf/exec';
+    const DEFAULT_ADMIN_PASS = 'admin123';
+    const DEFAULT_INITIAL_PASS = '123456';
+
+    const MESES = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const ANIOS_DEFAULT = [2025, 2026, 2027];
+
+    let appState = {
+      socios: [],
+      usuarios: [],
+      movimientos: [],
+      novedades: [],
+      valorCuota: 1000,
+      descuentoAnual: 0,
+      ultimoReciboNro: 0,
+      recoveryEmail: '',
+      adminPassword: DEFAULT_ADMIN_PASS,
+      carnetBgImage: '',
+      carnetLogoImage: '',
+      aniosDisponibles: [...ANIOS_DEFAULT],
+      anioSeleccionado: 2026,
+      nubeConfig: {
+        urlImplementacion: DEFAULT_APPS_SCRIPT_URL,
+        activa: true
+      }
+    };
+
+    let currentUser = null;
+    let socioSeleccionadoNro = null;
+    let cuotasSeleccionadas = new Set();
+    let html5QrScannerInstance = null;
+
+    // =========================================================================
+    // UTILIDADES GENERALES Y VALIDACIONES
+    // =========================================================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const styles = {
+        success: 'bg-potrillo-bosque text-white border-emerald-400',
+        error: 'bg-rose-900 text-white border-rose-400',
+        warning: 'bg-amber-900 text-amber-50 border-amber-400',
+        info: 'bg-stone-900 text-white border-stone-600'
+      };
+      const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+      const el = document.createElement('div');
+      el.className = `pointer-events-auto rounded-2xl border px-4 py-3 shadow-xl text-xs font-semibold flex items-start gap-2.5 transition-all duration-300 ${styles[type] || styles.info}`;
+      el.innerHTML = `<span class="text-sm leading-none">${icons[type] || 'ℹ️'}</span><span class="flex-1 leading-relaxed">${escapeHtml(message)}</span>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(8px)';
+        setTimeout(() => el.remove(), 260);
+      }, 4200);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function cleanDni(val) {
+      return String(val || '').toUpperCase().replace(/[^0-9MF]/g, '');
+    }
+
+    function validarDni(val) {
+      const limpio = cleanDni(val);
+      const match = limpio.match(/^([MF])?(\d+)$/);
+      if (!match) return { ok: false, error: 'Formato de DNI inválido.' };
+      const prefijo = match[1] || '';
+      const nums = match[2];
+      const n = parseInt(nums, 10);
+      if (isNaN(n) || n <= 0) return { ok: false, error: 'Número de DNI inválido.' };
+      if (n < 10000000 && !prefijo) {
+        return { ok: false, error: `Los DNI menores a 10.000.000 deben llevar M o F adelante (ej: M${nums} o F${nums}).` };
+      }
+      if (n >= 10000000 && prefijo) {
+        return { ok: false, error: 'Los DNI de 10.000.000 o más no llevan letra adelante.' };
+      }
+      return { ok: true, dniNormalizado: prefijo + nums };
+    }
+
+    function formatCurrency(num) {
+      return '$' + Math.round(Number(num) || 0).toLocaleString('es-AR');
+    }
+
+    function normalizarFechaISO(rawVal) {
+      if (!rawVal) return '';
+      const str = String(rawVal).trim();
+      const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (isoMatch) return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
+      const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`;
+      return '';
+    }
+
+    function formatFechaDisplay(rawIso) {
+      const iso = normalizarFechaISO(rawIso);
+      if (!iso) return '-';
+      const p = iso.split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : iso;
+    }
+
+    function nowFormatted() {
+      const d = new Date();
+      return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function normalizarCuotasSocio(socio) {
+      socio.fechaNacimiento = normalizarFechaISO(socio.fechaNacimiento);
+      if (!socio.cuotasPorAnio || typeof socio.cuotasPorAnio !== 'object') socio.cuotasPorAnio = {};
+      if (!socio.montosPorAnio || typeof socio.montosPorAnio !== 'object') socio.montosPorAnio = {};
+
+      const aniosSocio = Object.keys(socio.cuotasPorAnio).map(Number).filter((n) => !Number.isNaN(n));
+      appState.aniosDisponibles = Array.from(new Set([...appState.aniosDisponibles, ...aniosSocio])).sort((a, b) => a - b);
+
+      appState.aniosDisponibles.forEach((anio) => {
+        const k = String(anio);
+        if (!Array.isArray(socio.cuotasPorAnio[k]) || socio.cuotasPorAnio[k].length !== 12) {
+          socio.cuotasPorAnio[k] = Array(12).fill('Impaga');
+        }
+        if (!Array.isArray(socio.montosPorAnio[k]) || socio.montosPorAnio[k].length !== 12) {
+          socio.montosPorAnio[k] = socio.cuotasPorAnio[k].map((st) => (st === 'Paga' ? appState.valorCuota : 0));
+        }
+      });
+      return socio;
+    }
+
+    function getEstadoSocioAnio(socio, anio) {
+      if (socio.anulado) return 'Anulado';
+      const cuotas = socio.cuotasPorAnio?.[String(anio)] || Array(12).fill('Impaga');
+      const pagas = cuotas.filter((c) => c === 'Paga').length;
+      if (pagas === 12) return 'Al Día';
+      if (pagas >= 6) return 'Regular';
+      if (pagas >= 1) return 'Atrasado';
+      return 'Impago';
+    }
+
+    function getBadgeClaseEstado(estado) {
+      switch (estado) {
+        case 'Al Día': return 'bg-emerald-100 text-emerald-800 border border-emerald-300';
+        case 'Regular': return 'bg-sky-100 text-sky-800 border border-sky-300';
+        case 'Atrasado': return 'bg-amber-100 text-amber-800 border border-amber-300';
+        case 'Impago': return 'bg-rose-100 text-rose-800 border border-rose-300';
+        case 'Anulado': return 'bg-stone-200 text-stone-600 border border-stone-300';
+        default: return 'bg-stone-100 text-stone-700';
+      }
+    }
+
+    function openCustomConfirm(title, message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('custom-confirm-modal');
+        document.getElementById('custom-confirm-title').textContent = title;
+        document.getElementById('custom-confirm-message').textContent = message;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const btnOk = document.getElementById('custom-confirm-ok');
+        const btnCancel = document.getElementById('custom-confirm-cancel');
+        const cleanup = (res) => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          btnOk.removeEventListener('click', onOk);
+          btnCancel.removeEventListener('click', onCancel);
+          resolve(res);
+        };
+        const onOk = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+      });
+    }
+
+    // =========================================================================
+    // PERSISTENCIA LOCAL Y SINCRONIZACIÓN CON GOOGLE SHEETS
+    // =========================================================================
+    function isNubeActiva() {
+      return Boolean(appState.nubeConfig?.activa && /^https?:\/\//i.test(String(appState.nubeConfig?.urlImplementacion || '').trim()));
+    }
+
+    function saveLocalState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.warn('Error guardando estado local:', e);
+      }
+    }
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          appState = { ...appState, ...parsed };
+        }
+      } catch (e) {
+        console.warn('Error cargando estado local:', e);
+      }
+      appState.socios.forEach((s) => normalizarCuotasSocio(s));
+    }
+
+    async function enviarAccionNube(payloadObj) {
+      if (!isNubeActiva()) return { ok: false, skipped: true };
+      const url = appState.nubeConfig.urlImplementacion.trim();
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payloadObj)
+        });
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          return { ok: res.ok };
+        }
+      } catch (err) {
+        return { ok: false, error: 'Error de conexión con la nube.' };
+      }
+    }
+
+    async function sincronizarDesdeNube({ silent = false } = {}) {
+      if (!isNubeActiva()) return false;
+      const url = appState.nubeConfig.urlImplementacion.trim();
+      try {
+        const sep = url.includes('?') ? '&' : '?';
+        const res = await fetch(`${url}${sep}action=getAll&t=${Date.now()}`, { method: 'GET' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data || data.ok === false) throw new Error(data?.error || 'Respuesta inválida');
+
+        if (Array.isArray(data.socios)) appState.socios = data.socios.map((s) => normalizarCuotasSocio(s));
+        if (Array.isArray(data.usuarios)) appState.usuarios = data.usuarios;
+        if (Array.isArray(data.movimientos)) appState.movimientos = data.movimientos;
+        if (Array.isArray(data.novedades)) appState.novedades = data.novedades;
+        if (typeof data.valorCuota === 'number' && data.valorCuota > 0) appState.valorCuota = data.valorCuota;
+        if (typeof data.descuentoAnual === 'number' && data.descuentoAnual >= 0) appState.descuentoAnual = data.descuentoAnual;
+        if (typeof data.ultimoReciboNro === 'number') appState.ultimoReciboNro = data.ultimoReciboNro;
+        if (typeof data.recoveryEmail === 'string') appState.recoveryEmail = data.recoveryEmail;
+        if (typeof data.adminPassword === 'string' && data.adminPassword) appState.adminPassword = data.adminPassword;
+        if (typeof data.carnetBgImage === 'string') appState.carnetBgImage = data.carnetBgImage;
+        if (typeof data.carnetLogoImage === 'string') appState.carnetLogoImage = data.carnetLogoImage;
+
+        saveLocalState();
+        renderAll();
+        if (!silent) showToast('Sincronizado correctamente con Google Sheets.', 'success');
+        return true;
+      } catch (err) {
+        if (!silent) showToast('No se pudo conectar con Google Sheets. Usando datos locales.', 'warning');
+        return false;
+      }
+    }
+
+    // =========================================================================
+    // CARNET OFICIAL CON CÓDIGO QR EN MARGEN INFERIOR DERECHO
+    // =========================================================================
+    function renderAdminCarnetQr(containerId, qrPayload, sizePx = 44) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      if (typeof QRCode === 'function') {
+        new QRCode(container, {
+          text: qrPayload,
+          width: sizePx,
+          height: sizePx,
+          colorDark: '#143624',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        const img = document.createElement('img');
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${sizePx * 2}x${sizePx * 2}&data=${encodeURIComponent(qrPayload)}`;
+        img.alt = 'QR Socio';
+        img.className = 'w-full h-full object-contain';
+        container.appendChild(img);
+      }
+    }
+
+    function abrirModalCarnet(nroSocio) {
+      const socio = appState.socios.find((s) => s.nroSocio === nroSocio);
+      if (!socio) return;
+
+      document.getElementById('admin-carnet-nro').textContent = socio.nroSocio;
+      document.getElementById('admin-carnet-nombre').textContent = socio.nombre;
+      document.getElementById('admin-carnet-dni').textContent = socio.dni;
+      document.getElementById('admin-carnet-fnac').textContent = formatFechaDisplay(socio.fechaNacimiento);
+
+      const logoEl = document.getElementById('admin-carnet-logo-img');
+      logoEl.src = appState.carnetLogoImage || REPO_LOGO_PATH;
+      logoEl.onerror = () => { logoEl.src = REPO_LOGO_PATH; };
+
+      const bgEl = document.getElementById('admin-carnet-bg-img');
+      const ovEl = document.getElementById('admin-carnet-bg-overlay');
+      if (appState.carnetBgImage) {
+        bgEl.src = appState.carnetBgImage;
+        bgEl.classList.remove('hidden');
+        ovEl.classList.remove('hidden');
+      } else {
+        bgEl.classList.add('hidden');
+        ovEl.classList.add('hidden');
+      }
+
+      renderAdminCarnetQr('admin-carnet-qr', socio.nroSocio, 44);
+
+      const modal = document.getElementById('admin-carnet-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function imprimirElemento(htmlContent) {
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = htmlContent;
+      printArea.classList.remove('hidden');
+      setTimeout(() => {
+        window.print();
+        printArea.classList.add('hidden');
+        printArea.innerHTML = '';
+      }, 150);
+    }
+
+    // =========================================================================
+    // ESCÁNER QR CON CÁMARA (CELULAR O WEBCAM DE PC)
+    // =========================================================================
+    async function abrirEscanerQr() {
+      const modal = document.getElementById('qr-scanner-modal');
+      const statusEl = document.getElementById('qr-scanner-status');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      statusEl.textContent = 'Iniciando cámara...';
+
+      if (typeof Html5Qrcode !== 'function') {
+        statusEl.textContent = 'No se pudo cargar el módulo de cámara. Verificá tu conexión.';
+        return;
+      }
+
+      try {
+        html5QrScannerInstance = new Html5Qrcode('qr-reader-container');
+        await html5QrScannerInstance.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 210, height: 210 } },
+          async (decodedText) => {
+            const codigo = String(decodedText || '').trim();
+            await cerrarEscanerQr();
+            const buscador = document.getElementById('buscador-socio-input');
+            if (buscador) buscador.value = codigo;
+
+            const encontrado = appState.socios.find(
+              (s) => s.nroSocio.toUpperCase() === codigo.toUpperCase() || cleanDni(s.dni) === cleanDni(codigo)
+            );
+            if (encontrado) {
+              seleccionarSocioBuscador(encontrado.nroSocio);
+              renderResultadosBuscador();
+              showToast(`Socio detectado: ${encontrado.nombre} (${encontrado.nroSocio})`, 'success');
+            } else {
+              renderResultadosBuscador();
+              showToast(`QR leído (${codigo}), pero no coincide con ningún socio.`, 'warning');
+            }
+          },
+          () => {}
+        );
+        statusEl.textContent = 'Cámara activa · Ubicá el QR del carnet dentro del recuadro.';
+      } catch (err) {
+        statusEl.textContent = 'No se pudo acceder a la cámara. Verificá los permisos del navegador.';
+      }
+    }
+
+    async function cerrarEscanerQr() {
+      if (html5QrScannerInstance) {
+        try {
+          await html5QrScannerInstance.stop();
+          html5QrScannerInstance.clear();
+        } catch (e) {}
+        html5QrScannerInstance = null;
+      }
+      const modal = document.getElementById('qr-scanner-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // =========================================================================
+    // RESETEAR CONTRASEÑA DE SOCIO PARA EL PORTAL (123456)
+    // =========================================================================
+    async function resetearClavePortalSocio(nroSocio) {
+      const socio = appState.socios.find((s) => s.nroSocio === nroSocio);
+      if (!socio) return;
+
+      const ok = await openCustomConfirm(
+        'Restablecer Contraseña del Portal',
+        `¿Confirmás restablecer la contraseña de ingreso al Portal de Socios para:\n\n` +
+        `• Socio: ${socio.nombre} (${socio.nroSocio})\n` +
+        `• DNI: ${socio.dni}\n\n` +
+        `Volverá a la clave inicial 123456 y deberá crear una clave nueva al ingresar.`
+      );
+      if (!ok) return;
+
+      socio.password = DEFAULT_INITIAL_PASS;
+      socio.portalPassword = DEFAULT_INITIAL_PASS;
+      socio.mustChangePassword = true;
+      saveLocalState();
+
+      if (isNubeActiva()) {
+        const res = await enviarAccionNube({
+          action: 'resetSocioPortalPassword',
+          nroSocio: socio.nroSocio,
+          dni: socio.dni
+        });
+        if (res && res.ok) {
+          showToast(`Clave de ${socio.nombre} restablecida a 123456 en la nube.`, 'success');
+        } else {
+          showToast('Clave restablecida localmente, pero hubo un error al sincronizar con la nube.', 'warning');
+        }
+      } else {
+        showToast(`Clave de ${socio.nombre} restablecida a 123456.`, 'success');
+      }
+    }
+
+    // =========================================================================
+    // BUSCADOR Y COBRO DE CUOTAS
+    // =========================================================================
+    function renderResultadosBuscador() {
+      const q = String(document.getElementById('buscador-socio-input')?.value || '').trim().toLowerCase();
+      const cont = document.getElementById('buscador-resultados-lista');
+      if (!cont) return;
+
+      const activos = appState.socios.filter((s) => !s.anulado);
+      const filtrados = q
+        ? activos.filter(
+            (s) =>
+              s.nroSocio.toLowerCase().includes(q) ||
+              cleanDni(s.dni).toLowerCase().includes(q) ||
+              s.nombre.toLowerCase().includes(q)
+          )
+        : activos.slice(0, 6);
+
+      if (filtrados.length === 0) {
+        cont.innerHTML = `<div class="col-span-full text-xs text-stone-500 py-3">No se encontraron socios con ese criterio.</div>`;
+        return;
+      }
+
+      cont.innerHTML = filtrados.slice(0, 9).map((s) => {
+        const est = getEstadoSocioAnio(s, appState.anioSeleccionado);
+        const isSelected = s.nroSocio === socioSeleccionadoNro;
+        return `
+          <button
+            type="button"
+            onclick="seleccionarSocioBuscador('${escapeHtml(s.nroSocio)}')"
+            class="text-left p-3 rounded-xl border transition flex items-center justify-between gap-2 ${
+              isSelected ? 'bg-potrillo-crema border-potrillo-bosque ring-2 ring-potrillo-bosque/20' : 'bg-white border-stone-200 hover:bg-stone-50'
+            }"
+          >
+            <div class="min-w-0">
+              <span class="font-mono text-[11px] font-extrabold text-potrillo-bosque">${escapeHtml(s.nroSocio)}</span>
+              <p class="font-extrabold text-xs text-stone-900 truncate">${escapeHtml(s.nombre)}</p>
+              <span class="font-mono text-[11px] text-stone-500">DNI: ${escapeHtml(s.dni)}</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${getBadgeClaseEstado(est)}">${est}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function seleccionarSocioBuscador(nroSocio) {
+      socioSeleccionadoNro = nroSocio;
+      cuotasSeleccionadas.clear();
+      renderDetalleCobroSocio();
+      renderResultadosBuscador();
+    }
+
+    function renderDetalleCobroSocio() {
+      const box = document.getElementById('socio-cobro-detalle');
+      const socio = appState.socios.find((s) => s.nroSocio === socioSeleccionadoNro);
+      if (!socio) {
+        box.classList.add('hidden');
+        return;
+      }
+
+      box.classList.remove('hidden');
+      const anio = appState.anioSeleccionado;
+      const est = getEstadoSocioAnio(socio, anio);
+
+      document.getElementById('det-nro-socio').textContent = socio.nroSocio;
+      document.getElementById('det-nombre').textContent = socio.nombre;
+      document.getElementById('det-dni').textContent = socio.dni;
+      document.getElementById('det-tel').textContent = socio.telefono || '-';
+      document.getElementById('det-loc').textContent = socio.localidad || '-';
+
+      const badge = document.getElementById('det-estado-badge');
+      badge.className = `px-2.5 py-0.5 rounded-full text-xs font-extrabold ${getBadgeClaseEstado(est)}`;
+      badge.textContent = est;
+
+      const cuotas = socio.cuotasPorAnio?.[String(anio)] || Array(12).fill('Impaga');
+      const montos = socio.montosPorAnio?.[String(anio)] || Array(12).fill(0);
+
+      const grid = document.getElementById('det-cuotas-grid');
+      grid.innerHTML = MESES.map((mes, idx) => {
+        const paga = cuotas[idx] === 'Paga';
+        const sel = cuotasSeleccionadas.has(idx);
+        return `
+          <button
+            type="button"
+            ${paga ? 'disabled' : `onclick="toggleSeleccionCuota(${idx})"`}
+            class="p-3 rounded-xl border text-left transition ${
+              paga
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950 cursor-default'
+                : sel
+                ? 'bg-amber-100 border-potrillo-tierra ring-2 ring-potrillo-trigo/40 text-stone-900'
+                : 'bg-white border-stone-200 hover:border-potrillo-campo text-stone-800'
+            }"
+          >
+            <div class="flex items-center justify-between text-[10px] font-extrabold">
+              <span>${mes.toUpperCase()}</span>
+              <span>${paga ? '✓ PAGA' : sel ? '☑️ SEL' : 'IMPAGA'}</span>
+            </div>
+            <p class="font-mono text-xs font-bold mt-1">
+              ${paga ? formatCurrency(montos[idx] || appState.valorCuota) : formatCurrency(appState.valorCuota)}
+            </p>
+          </button>
+        `;
+      }).join('');
+
+      document.getElementById('sel-cuotas-count').textContent = String(cuotasSeleccionadas.size);
+      document.getElementById('btn-cobrar-seleccionadas').disabled = cuotasSeleccionadas.size === 0;
+    }
+
+    function toggleSeleccionCuota(idx) {
+      if (cuotasSeleccionadas.has(idx)) {
+        cuotasSeleccionadas.delete(idx);
+      } else {
+        cuotasSeleccionadas.add(idx);
+      }
+      renderDetalleCobroSocio();
+    }
+
+    async function procesarCobro(indicesCuotas, esAnual = false) {
+      const socio = appState.socios.find((s) => s.nroSocio === socioSeleccionadoNro);
+      if (!socio || indicesCuotas.length === 0) return;
+
+      const anio = appState.anioSeleccionado;
+      const valorBase = Number(appState.valorCuota) || 1000;
+      const descPct = esAnual ? Number(appState.descuentoAnual) || 0 : 0;
+      const subtotal = valorBase * indicesCuotas.length;
+      const descuentoMonto = Math.round((subtotal * descPct) / 100);
+      const totalCobrar = subtotal - descuentoMonto;
+
+      const ok = await openCustomConfirm(
+        esAnual ? 'Cobrar Año Completo' : 'Cobrar Cuotas Seleccionadas',
+        `Socio: ${socio.nombre} (${socio.nroSocio})\n` +
+        `Año: ${anio} · Cuotas: ${indicesCuotas.map((i) => MESES[i]).join(', ')}\n` +
+        `Total a cobrar: ${formatCurrency(totalCobrar)}`
+      );
+      if (!ok) return;
+
+      const k = String(anio);
+      const valorUnitarioFinal = Math.round(totalCobrar / indicesCuotas.length);
+      indicesCuotas.forEach((idx) => {
+        socio.cuotasPorAnio[k][idx] = 'Paga';
+        socio.montosPorAnio[k][idx] = valorUnitarioFinal;
+      });
+
+      appState.ultimoReciboNro = (Number(appState.ultimoReciboNro) || 0) + 1;
+      const mov = {
+        id: 'REC-' + String(appState.ultimoReciboNro).padStart(6, '0'),
+        fechaHora: nowFormatted(),
+        operador: currentUser?.username || 'admin',
+        operadorNombre: currentUser?.nombre || 'Administrador',
+        tipo: esAnual ? 'Cobro Anual' : 'Cobro Cuotas',
+        detalle: `${socio.nroSocio} (${socio.nombre}) - ${anio}: ${indicesCuotas.map((i) => MESES[i]).join(', ')}`,
+        importe: totalCobrar,
+        fechaReal: new Date().toISOString().slice(0, 10),
+        observacion: ''
+      };
+      appState.movimientos.unshift(mov);
+      saveLocalState();
+
+      if (isNubeActiva()) {
+        await enviarAccionNube({
+          action: 'registrarPagoSocio',
+          nroSocio: socio.nroSocio,
+          cuotasPorAnio: socio.cuotasPorAnio,
+          montosPorAnio: socio.montosPorAnio,
+          movimiento: mov,
+          ultimoReciboNro: appState.ultimoReciboNro
+        });
+      }
+
+      cuotasSeleccionadas.clear();
+      renderAll();
+      mostrarReciboModal(mov, socio);
+      showToast(`Cobro registrado (${mov.id}) por ${formatCurrency(totalCobrar)}.`, 'success');
+    }
+
+    function mostrarReciboModal(mov, socio) {
+      const html = `
+        <div class="border-b border-stone-300 pb-2 flex justify-between items-center">
+          <div>
+            <p class="font-extrabold text-sm text-potrillo-bosque">FIESTA NACIONAL DEL POTRILLO</p>
+            <p class="text-[10px] text-stone-500">Coronel Vidal · Partido de Mar Chiquita</p>
+          </div>
+          <span class="font-mono font-extrabold text-xs bg-stone-200 px-2 py-1 rounded">${escapeHtml(mov.id)}</span>
+        </div>
+        <div class="space-y-1 pt-1">
+          <p><strong>Fecha:</strong> ${escapeHtml(mov.fechaHora)}</p>
+          <p><strong>Socio:</strong> ${escapeHtml(socio.nombre)} (${escapeHtml(socio.nroSocio)})</p>
+          <p><strong>DNI:</strong> ${escapeHtml(socio.dni)}</p>
+          <p><strong>Concepto:</strong> ${escapeHtml(mov.detalle)}</p>
+          <p><strong>Cobrador:</strong> ${escapeHtml(mov.operadorNombre)}</p>
+        </div>
+        <div class="border-t border-stone-300 pt-2 flex justify-between items-center text-sm font-extrabold text-potrillo-bosque">
+          <span>TOTAL ABONADO</span>
+          <span class="font-mono">${formatCurrency(mov.importe)}</span>
+        </div>
+      `;
+      document.getElementById('recibo-preview-box').innerHTML = html;
+      const m = document.getElementById('recibo-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    // =========================================================================
+    // BASE DE DATOS / PADRÓN DE SOCIOS
+    // =========================================================================
+    function renderPadronTabla() {
+      const tbody = document.getElementById('padron-tbody');
+      if (!tbody) return;
+
+      const filtroEstado = document.getElementById('padron-filtro-estado')?.value || 'ALL';
+      const filtroTexto = String(document.getElementById('padron-filtro-texto')?.value || '').trim().toLowerCase();
+      const anio = appState.anioSeleccionado;
+
+      const filtrados = appState.socios.filter((s) => {
+        const est = getEstadoSocioAnio(s, anio);
+        if (filtroEstado !== 'ALL' && est !== filtroEstado) return false;
+        if (filtroTexto) {
+          return (
+            s.nroSocio.toLowerCase().includes(filtroTexto) ||
+            s.nombre.toLowerCase().includes(filtroTexto) ||
+            cleanDni(s.dni).toLowerCase().includes(filtroTexto) ||
+            (s.localidad || '').toLowerCase().includes(filtroTexto)
+          );
+        }
+        return true;
+      });
+
+      if (filtrados.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-stone-500">No hay socios que coincidan con el filtro.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtrados.map((s) => {
+        const est = getEstadoSocioAnio(s, anio);
+        return `
+          <tr class="hover:bg-stone-50/90 ${s.anulado ? 'opacity-60 bg-stone-50' : ''}">
+            <td class="py-3 px-4 font-mono font-extrabold text-potrillo-bosque">${escapeHtml(s.nroSocio)}</td>
+            <td class="py-3 px-4 font-bold text-stone-900">${escapeHtml(s.nombre)}</td>
+            <td class="py-3 px-4 font-mono text-stone-700">${escapeHtml(s.dni)}</td>
+            <td class="py-3 px-4 text-stone-600">${escapeHtml(s.localidad || '-')}</td>
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${getBadgeClaseEstado(est)}">${est}</span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                <button
+                  type="button"
+                  onclick="irACobrarSocio('${escapeHtml(s.nroSocio)}')"
+                  class="px-2.5 py-1 rounded-lg bg-potrillo-campo hover:bg-potrillo-hoja text-white font-bold text-[11px]"
+                  title="Ir a cobrar cuotas"
+                >
+                  💳 Cobrar
+                </button>
+                <button
+                  type="button"
+                  onclick="abrirModalCarnet('${escapeHtml(s.nroSocio)}')"
+                  class="px-2.5 py-1 rounded-lg bg-potrillo-crema hover:bg-amber-100 border border-stone-300 text-stone-800 font-bold text-[11px]"
+                  title="Ver e imprimir carnet con QR"
+                >
+                  🪪 Carnet
+                </button>
+                <button
+                  type="button"
+                  onclick="resetearClavePortalSocio('${escapeHtml(s.nroSocio)}')"
+                  class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-potrillo-tierra font-bold text-[11px]"
+                  title="Restablecer contraseña del portal a 123456"
+                >
+                  🔑 Reset Clave
+                </button>
+                <button
+                  type="button"
+                  onclick="abrirEditarSocio('${escapeHtml(s.nroSocio)}')"
+                  class="px-2.5 py-1 rounded-lg bg-white hover:bg-stone-100 border border-stone-300 text-stone-700 font-bold text-[11px]"
+                  title="Editar datos personales"
+                >
+                  ✏️
+                </button>
+                <button
+                  type="button"
+                  onclick="toggleAnularSocio('${escapeHtml(s.nroSocio)}')"
+                  class="px-2.5 py-1 rounded-lg ${s.anulado ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700'} font-bold text-[11px]"
+                  title="${s.anulado ? 'Reactivar socio' : 'Anular socio'}"
+                >
+                  ${s.anulado ? '♻️' : '🚫'}
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function irACobrarSocio(nroSocio) {
+      activarTab('buscador');
+      seleccionarSocioBuscador(nroSocio);
+    }
+
+    function abrirEditarSocio(nroSocio) {
+      const s = appState.socios.find((x) => x.nroSocio === nroSocio);
+      if (!s) return;
+      document.getElementById('edit-socio-nro-label').textContent = s.nroSocio;
+      document.getElementById('edit-nro').value = s.nroSocio;
+      document.getElementById('edit-nombre').value = s.nombre;
+      document.getElementById('edit-dni').value = s.dni;
+      document.getElementById('edit-fnac').value = normalizarFechaISO(s.fechaNacimiento);
+      document.getElementById('edit-telefono').value = s.telefono || '';
+      document.getElementById('edit-email').value = s.email || '';
+      document.getElementById('edit-domicilio').value = s.domicilio || '';
+      document.getElementById('edit-localidad').value = s.localidad || '';
+      document.getElementById('edit-partido').value = s.partido || '';
+      document.getElementById('edit-provincia').value = s.provincia || 'Buenos Aires';
+
+      const m = document.getElementById('edit-socio-modal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    async function toggleAnularSocio(nroSocio) {
+      const s = appState.socios.find((x) => x.nroSocio === nroSocio);
+      if (!s) return;
+      const accionTxt = s.anulado ? 'reactivar' : 'anular';
+      const ok = await openCustomConfirm(
+        `${s.anulado ? 'Reactivar' : 'Anular'} Socio`,
+        `¿Confirmás ${accionTxt} la ficha de ${s.nombre} (${s.nroSocio})?`
+      );
+      if (!ok) return;
+
+      s.anulado = !s.anulado;
+      saveLocalState();
+      if (isNubeActiva()) {
+        await enviarAccionNube({ action: 'updateSocioAtomic', socio: s });
+      }
+      renderAll();
+      showToast(`Socio ${s.nroSocio} ${s.anulado ? 'anulado' : 'reactivado'}.`, 'info');
+    }
+
+    // =========================================================================
+    // NOVEDADES, MOVIMIENTOS Y CONFIGURACIÓN
+    // =========================================================================
+    function renderNovedadesAdmin() {
+      const cont = document.getElementById('admin-novedades-lista');
+      if (!cont) return;
+      if (appState.novedades.length === 0) {
+        cont.innerHTML = `<p class="text-xs text-stone-500">No hay novedades publicadas todavía.</p>`;
+        return;
+      }
+      cont.innerHTML = appState.novedades.map((n, idx) => `
+        <div class="p-4 rounded-xl border border-stone-200 bg-potrillo-crema/50 flex items-start justify-between gap-3">
+          <div class="space-y-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-potrillo-bosque text-white">${escapeHtml(n.tipo)}</span>
+              <span class="text-[10px] font-mono text-stone-500">${escapeHtml(n.fechaCreacion || '')}</span>
+            </div>
+            <h4 class="font-extrabold text-xs text-stone-900">${escapeHtml(n.titulo)}</h4>
+            <p class="text-xs text-stone-600 line-clamp-2">${escapeHtml(n.descripcion)}</p>
+          </div>
+          <button type="button" onclick="eliminarNovedad(${idx})" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs shrink-0">
+            🗑️
+          </button>
+        </div>
+      `).join('');
+    }
+
+    async function eliminarNovedad(idx) {
+      const ok = await openCustomConfirm('Eliminar Novedad', '¿Querés eliminar esta publicación del portal?');
+      if (!ok) return;
+      appState.novedades.splice(idx, 1);
+      saveLocalState();
+      if (isNubeActiva()) {
+        await enviarAccionNube({ action: 'saveNovedades', novedades: appState.novedades });
+      }
+      renderNovedadesAdmin();
+      showToast('Novedad eliminada.', 'info');
+    }
+
+    function renderMovimientos() {
+      const tbody = document.getElementById('movimientos-tbody');
+      if (!tbody) return;
+      const total = appState.movimientos.reduce((acc, m) => acc + (Number(m.importe) || 0), 0);
+      document.getElementById('total-recaudado-badge').textContent = `Total: ${formatCurrency(total)}`;
+
+      if (appState.movimientos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-stone-500">Sin movimientos registrados.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = appState.movimientos.slice(0, 150).map((m) => `
+        <tr class="hover:bg-stone-50">
+          <td class="py-2.5 px-4 font-mono text-stone-600">${escapeHtml(m.fechaHora)}</td>
+          <td class="py-2.5 px-4 font-semibold">${escapeHtml(m.operadorNombre || m.operador)}</td>
+          <td class="py-2.5 px-4"><span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold text-[10px]">${escapeHtml(m.tipo)}</span></td>
+          <td class="py-2.5 px-4 text-stone-800">${escapeHtml(m.detalle)}</td>
+          <td class="py-2.5 px-4 text-right font-mono font-extrabold text-potrillo-bosque">${formatCurrency(m.importe)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderConfiguracion() {
+      document.getElementById('cfg-valor-cuota').value = appState.valorCuota;
+      document.getElementById('cfg-desc-anual').value = appState.descuentoAnual;
+      document.getElementById('cfg-recovery-email').value = appState.recoveryEmail || '';
+      document.getElementById('cfg-apps-script-url').value = appState.nubeConfig?.urlImplementacion || DEFAULT_APPS_SCRIPT_URL;
+
+      const opList = document.getElementById('operadores-lista');
+      if (opList) {
+        opList.innerHTML = appState.usuarios.map((u, idx) => `
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-potrillo-crema border border-stone-200">
+            <div>
+              <span class="font-bold text-stone-900">${escapeHtml(u.nombre)}</span>
+              <span class="font-mono text-stone-500 ml-1">(@${escapeHtml(u.username)})</span>
+            </div>
+            <button type="button" onclick="eliminarOperador(${idx})" class="text-rose-700 font-bold hover:underline">Quitar</button>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function eliminarOperador(idx) {
+      const ok = await openCustomConfirm('Eliminar Operador', '¿Confirmás quitar este usuario operador?');
+      if (!ok) return;
+      appState.usuarios.splice(idx, 1);
+      saveLocalState();
+      if (isNubeActiva()) await enviarAccionNube({ action: 'syncFullState', state: appState });
+      renderConfiguracion();
+    }
+
+    // =========================================================================
+    // RENDER GENERAL Y NAVEGACIÓN
+    // =========================================================================
+    function renderAll() {
+      const anio = appState.anioSeleccionado;
+      const activos = appState.socios.filter((s) => !s.anulado);
+      const alDia = activos.filter((s) => getEstadoSocioAnio(s, anio) === 'Al Día');
+
+      document.getElementById('badge-total-socios').textContent = String(activos.length);
+      document.getElementById('kpi-socios-activos').textContent = String(activos.length);
+      document.getElementById('kpi-socios-aldia').textContent = String(alDia.length);
+      document.getElementById('kpi-valor-cuota').textContent = formatCurrency(appState.valorCuota);
+      document.getElementById('kpi-desc-anual').textContent = `${appState.descuentoAnual}%`;
+      document.querySelectorAll('.kpi-anio-label').forEach((el) => { el.textContent = String(anio); });
+
+      const selAnio = document.getElementById('cobro-anio-select');
+      if (selAnio) {
+        selAnio.innerHTML = appState.aniosDisponibles.map((a) => `<option value="${a}" ${a === anio ? 'selected' : ''}>${a}</option>`).join('');
+      }
+
+      renderResultadosBuscador();
+      renderDetalleCobroSocio();
+      renderPadronTabla();
+      renderNovedadesAdmin();
+      renderMovimientos();
+      renderConfiguracion();
+    }
+
+    function activarTab(tabName) {
+      document.querySelectorAll('.nav-tab-btn').forEach((btn) => {
+        const active = btn.getAttribute('data-tab') === tabName;
+        btn.classList.toggle('active', active);
+        if (active) {
+          btn.classList.add('bg-white', 'text-potrillo-bosque', 'shadow-md', 'font-bold');
+          btn.classList.remove('text-white/85', 'hover:bg-white/15', 'font-semibold');
+        } else {
+          btn.classList.remove('bg-white', 'text-potrillo-bosque', 'shadow-md', 'font-bold');
+          btn.classList.add('text-white/85', 'hover:bg-white/15', 'font-semibold');
+        }
+      });
+
+      document.querySelectorAll('.tab-panel').forEach((p) => {
+        p.classList.toggle('active', p.id === `panel-${tabName}`);
+      });
+    }
+
+    // =========================================================================
+    // AUTENTICACIÓN DE ADMIN / OPERADORES
+    // =========================================================================
+    function iniciarSesionUsuario(userObj) {
+      currentUser = userObj;
+      sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(userObj));
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('header-user-badge').textContent = `${userObj.nombre} (${userObj.role === 'admin' ? 'Admin' : 'Operador'})`;
+
+      document.querySelectorAll('[data-admin-only="true"]').forEach((el) => {
+        el.classList.toggle('hidden', userObj.role !== 'admin');
+      });
+
+      if (userObj.mustChangePassword) {
+        const m = document.getElementById('force-pass-modal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      }
+
+      renderAll();
+    }
+
+    function cerrarSesionUsuario() {
+      currentUser = null;
+      sessionStorage.removeItem(SESSION_USER_KEY);
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('form-login').reset();
+    }
+
+    // =========================================================================
+    // EVENTOS DE INTERFAZ
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      loadLocalState();
+
+      document.querySelectorAll('.nav-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => activarTab(btn.getAttribute('data-tab')));
+      });
+
+      // Login
+      document.getElementById('form-login').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errBox = document.getElementById('login-error-box');
+        errBox.classList.add('hidden');
+
+        const user = document.getElementById('login-username').value.trim();
+        const pass = document.getElementById('login-password').value;
+
+        if (isNubeActiva()) {
+          await sincronizarDesdeNube({ silent: true });
+        }
+
+        if (user.toLowerCase() === 'admin' && pass === (appState.adminPassword || DEFAULT_ADMIN_PASS)) {
+          iniciarSesionUsuario({ username: 'admin', nombre: 'Administrador', role: 'admin', mustChangePassword: false });
+          return;
+        }
+
+        const op = appState.usuarios.find((u) => u.username.toLowerCase() === user.toLowerCase() && u.password === pass);
+        if (op) {
+          iniciarSesionUsuario({ ...op, role: 'operador' });
+          return;
+        }
+
+        errBox.textContent = 'Usuario o contraseña incorrectos.';
+        errBox.classList.remove('hidden');
+      });
+
+      // Cambio obligatorio clave operador
+      document.getElementById('form-force-pass').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const n1 = document.getElementById('fp-new').value;
+        const n2 = document.getElementById('fp-confirm').value;
+        const err = document.getElementById('force-pass-err');
+        if (n1 !== n2 || n1 === DEFAULT_INITIAL_PASS) {
+          err.textContent = 'Las contraseñas no coinciden o es igual a 123456.';
+          err.classList.remove('hidden');
+          return;
+        }
+        const op = appState.usuarios.find((u) => u.username === currentUser.username);
+        if (op) {
+          op.password = n1;
+          op.mustChangePassword = false;
+        }
+        currentUser.mustChangePassword = false;
+        saveLocalState();
+        if (isNubeActiva()) await enviarAccionNube({ action: 'syncFullState', state: appState });
+        document.getElementById('force-pass-modal').classList.add('hidden');
+        showToast('Contraseña personal actualizada.', 'success');
+      });
+
+      // Recuperación clave admin
+      document.getElementById('btn-open-recovery').addEventListener('click', () => {
+        const m = document.getElementById('recovery-modal');
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      });
+      document.getElementById('btn-close-recovery').addEventListener('click', () => {
+        document.getElementById('recovery-modal').classList.add('hidden');
+      });
+      document.getElementById('btn-send-rec-code').addEventListener('click', async () => {
+        const box = document.getElementById('rec-status-box');
+        box.classList.remove('hidden');
+        box.className = 'rounded-xl p-3 font-semibold bg-amber-50 text-amber-900';
+        box.textContent = 'Enviando código...';
+        const res = await enviarAccionNube({ action: 'sendAdminRecoveryCode', fallbackEmail: appState.recoveryEmail });
+        if (res && res.ok) {
+          box.className = 'rounded-xl p-3 font-semibold bg-emerald-50 text-emerald-800';
+          box.textContent = `Código enviado a ${res.maskedEmail}`;
+        } else {
+          box.className = 'rounded-xl p-3 font-semibold bg-rose-50 text-rose-800';
+          box.textContent = res?.error || 'No se pudo enviar el código.';
+        }
+      });
+      document.getElementById('form-verify-rec').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('rec-code').value.trim();
+        const newPassword = document.getElementById('rec-new-pass').value;
+        const res = await enviarAccionNube({ action: 'verifyAdminRecoveryCode', code, newPassword });
+        if (res && res.ok) {
+          appState.adminPassword = newPassword;
+          saveLocalState();
+          document.getElementById('recovery-modal').classList.add('hidden');
+          showToast('Clave de administrador restablecida.', 'success');
+        } else {
+          showToast(res?.error || 'Código inválido.', 'error');
+        }
+      });
+
+      // Cabecera
+      document.getElementById('btn-sync-now').addEventListener('click', () => sincronizarDesdeNube({ silent: false }));
+      document.getElementById('btn-logout').addEventListener('click', cerrarSesionUsuario);
+
+      // Buscador y escáner QR
+      document.getElementById('buscador-socio-input').addEventListener('input', renderResultadosBuscador);
+      document.getElementById('btn-abrir-escaner-qr').addEventListener('click', abrirEscanerQr);
+      document.getElementById('btn-close-qr-scanner').addEventListener('click', cerrarEscanerQr);
+      document.getElementById('btn-cancel-qr-scanner').addEventListener('click', cerrarEscanerQr);
+
+      document.getElementById('cobro-anio-select').addEventListener('change', (e) => {
+        appState.anioSeleccionado = Number(e.target.value) || 2026;
+        cuotasSeleccionadas.clear();
+        renderAll();
+      });
+
+      document.getElementById('btn-det-ver-carnet').addEventListener('click', () => {
+        if (socioSeleccionadoNro) abrirModalCarnet(socioSeleccionadoNro);
+      });
+      document.getElementById('btn-cobrar-seleccionadas').addEventListener('click', () => {
+        procesarCobro(Array.from(cuotasSeleccionadas).sort((a, b) => a - b), false);
+      });
+      document.getElementById('btn-cobrar-anual').addEventListener('click', () => {
+        const socio = appState.socios.find((s) => s.nroSocio === socioSeleccionadoNro);
+        if (!socio) return;
+        const cuotas = socio.cuotasPorAnio?.[String(appState.anioSeleccionado)] || [];
+        const impagas = cuotas.map((c, idx) => (c !== 'Paga' ? idx : -1)).filter((i) => i !== -1);
+        if (impagas.length === 0) {
+          showToast('Este socio ya tiene todas las cuotas del año pagas.', 'info');
+          return;
+        }
+        procesarCobro(impagas, impagas.length === 12);
+      });
+
+      // Modal Carnet
+      const closeCarnetModal = () => document.getElementById('admin-carnet-modal').classList.add('hidden');
+      document.getElementById('btn-close-admin-carnet').addEventListener('click', closeCarnetModal);
+      document.getElementById('btn-cerrar-carnet-footer').addEventListener('click', closeCarnetModal);
+      document.getElementById('btn-imprimir-admin-carnet').addEventListener('click', () => {
+        const cardHtml = document.getElementById('admin-carnet-card').outerHTML;
+        imprimirElemento(`<div style="display:flex;justify-content:center;padding:10mm;">${cardHtml}</div>`);
+      });
+
+      // Modal Recibo
+      const closeRecibo = () => document.getElementById('recibo-modal').classList.add('hidden');
+      document.getElementById('btn-close-recibo').addEventListener('click', closeRecibo);
+      document.getElementById('btn-cerrar-recibo-footer').addEventListener('click', closeRecibo);
+      document.getElementById('btn-imprimir-recibo').addEventListener('click', () => {
+        const recHtml = document.getElementById('recibo-preview-box').outerHTML;
+        imprimirElemento(`<div style="max-width:90mm;margin:0 auto;font-family:sans-serif;">${recHtml}</div>`);
+      });
+
+      // Alta de socio
+      document.getElementById('form-alta-socio').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dniVal = validarDni(document.getElementById('alta-dni').value);
+        if (!dniVal.ok) {
+          showToast(dniVal.error, 'error');
+          return;
+        }
+        if (appState.socios.some((s) => cleanDni(s.dni) === dniVal.dniNormalizado)) {
+          showToast(`Ya existe un socio registrado con el DNI ${dniVal.dniNormalizado}.`, 'error');
+          return;
+        }
+
+        const btn = document.getElementById('btn-guardar-socio');
+        btn.disabled = true;
+
+        const nuevoSocio = normalizarCuotasSocio({
+          nroSocio: 'POT-' + String(appState.socios.length + 1).padStart(5, '0'),
+          nombre: document.getElementById('alta-nombre').value.trim(),
+          dni: dniVal.dniNormalizado,
+          fechaNacimiento: document.getElementById('alta-fnac').value,
+          telefono: document.getElementById('alta-telefono').value.trim(),
+          email: document.getElementById('alta-email').value.trim(),
+          domicilio: document.getElementById('alta-domicilio').value.trim(),
+          localidad: document.getElementById('alta-localidad').value.trim(),
+          partido: document.getElementById('alta-partido').value.trim(),
+          provincia: document.getElementById('alta-provincia').value.trim(),
+          creadoPor: currentUser?.username || 'admin',
+          anulado: false,
+          password: DEFAULT_INITIAL_PASS,
+          mustChangePassword: true
+        });
+
+        if (isNubeActiva()) {
+          const res = await enviarAccionNube({
+            action: 'createSocioAtomic',
+            socio: nuevoSocio,
+            operador: currentUser?.username || 'admin'
+          });
+          if (res && res.ok && res.nroSocio) {
+            nuevoSocio.nroSocio = res.nroSocio;
+          } else if (res && res.error) {
+            btn.disabled = false;
+            showToast(res.error, 'error');
+            return;
+          }
+        }
+
+        appState.socios.push(nuevoSocio);
+        saveLocalState();
+        btn.disabled = false;
+        e.target.reset();
+        document.getElementById('alta-localidad').value = 'Coronel Vidal';
+        document.getElementById('alta-partido').value = 'Mar Chiquita';
+        document.getElementById('alta-provincia').value = 'Buenos Aires';
+        renderAll();
+        showToast(`Socio ${nuevoSocio.nombre} (${nuevoSocio.nroSocio}) registrado.`, 'success');
+      });
+
+      // Edición de socio
+      const closeEdit = () => document.getElementById('edit-socio-modal').classList.add('hidden');
+      document.getElementById('btn-close-edit-socio').addEventListener('click', closeEdit);
+      document.getElementById('btn-cancel-edit-socio').addEventListener('click', closeEdit);
+      document.getElementById('form-edit-socio').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nro = document.getElementById('edit-nro').value;
+        const s = appState.socios.find((x) => x.nroSocio === nro);
+        if (!s) return;
+
+        const dniVal = validarDni(document.getElementById('edit-dni').value);
+        if (!dniVal.ok) {
+          showToast(dniVal.error, 'error');
+          return;
+        }
+
+        s.nombre = document.getElementById('edit-nombre').value.trim();
+        s.dni = dniVal.dniNormalizado;
+        s.fechaNacimiento = document.getElementById('edit-fnac').value;
+        s.telefono = document.getElementById('edit-telefono').value.trim();
+        s.email = document.getElementById('edit-email').value.trim();
+        s.domicilio = document.getElementById('edit-domicilio').value.trim();
+        s.localidad = document.getElementById('edit-localidad').value.trim();
+        s.partido = document.getElementById('edit-partido').value.trim();
+        s.provincia = document.getElementById('edit-provincia').value.trim();
+
+        saveLocalState();
+        if (isNubeActiva()) await enviarAccionNube({ action: 'updateSocioAtomic', socio: s });
+        closeEdit();
+        renderAll();
+        showToast(`Datos de ${s.nombre} actualizados.`, 'success');
+      });
+
+      // Filtros padrón
+      document.getElementById('padron-filtro-estado').addEventListener('change', renderPadronTabla);
+      document.getElementById('padron-filtro-texto').addEventListener('input', renderPadronTabla);
+
+      // Novedades
+      document.getElementById('form-novedad').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        let imgUrl = document.getElementById('nov-img-url').value.trim();
+        const file = document.getElementById('nov-img-file').files?.[0];
+
+        if (file && isNubeActiva()) {
+          const b64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+          const up = await enviarAccionNube({
+            action: 'uploadNovedadImage',
+            base64: b64,
+            mimeType: file.type,
+            fileName: file.name
+          });
+          if (up && up.ok && up.imageUrl) imgUrl = up.imageUrl;
+        }
+
+        appState.novedades.unshift({
+          id: 'NOV-' + Date.now(),
+          titulo: document.getElementById('nov-titulo').value.trim(),
+          tipo: document.getElementById('nov-tipo').value,
+          vigencia: document.getElementById('nov-vigencia').value.trim(),
+          descripcion: document.getElementById('nov-desc').value.trim(),
+          imagenUrl: imgUrl,
+          activa: true,
+          fechaCreacion: new Date().toLocaleDateString('es-AR')
+        });
+        saveLocalState();
+        if (isNubeActiva()) await enviarAccionNube({ action: 'saveNovedades', novedades: appState.novedades });
+        e.target.reset();
+        renderNovedadesAdmin();
+        showToast('Novedad publicada en el portal.', 'success');
+      });
+
+      // Configuración
+      document.getElementById('form-config-general').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        appState.valorCuota = Number(document.getElementById('cfg-valor-cuota').value) || 1000;
+        appState.descuentoAnual = Number(document.getElementById('cfg-desc-anual').value) || 0;
+        appState.recoveryEmail = document.getElementById('cfg-recovery-email').value.trim();
+        const url = document.getElementById('cfg-apps-script-url').value.trim();
+        if (url) {
+          appState.nubeConfig = { urlImplementacion: url, activa: true };
+        }
+        saveLocalState();
+        if (isNubeActiva()) await enviarAccionNube({ action: 'syncFullState', state: appState });
+        renderAll();
+        showToast('Configuración guardada.', 'success');
+      });
+
+      document.getElementById('cfg-carnet-bg-file').addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const b64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+        appState.carnetBgImage = b64;
+        if (isNubeActiva()) {
+          const up = await enviarAccionNube({
+            action: 'uploadCarnetAsset',
+            assetType: 'bg',
+            base64: b64,
+            mimeType: file.type,
+            fileName: file.name
+          });
+          if (up && up.ok && up.imageUrl) appState.carnetBgImage = up.imageUrl;
+        }
+        saveLocalState();
+        showToast('Fondo del carnet actualizado.', 'success');
+      });
+
+      document.getElementById('btn-clear-carnet-bg').addEventListener('click', async () => {
+        appState.carnetBgImage = '';
+        saveLocalState();
+        if (isNubeActiva()) await enviarAccionNube({ action: 'saveCarnetConfig', carnetBgImage: '' });
+        showToast('Fondo del carnet quitado.', 'info');
+      });
+
+      document.getElementById('form-nuevo-operador').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('op-username').value.trim();
+        const nombre = document.getElementById('op-nombre').value.trim();
+        if (!username || !nombre) return;
+        appState.usuarios.push({ username, nombre, dni: '', password: DEFAULT_INITIAL_PASS, mustChangePassword: true });
+        saveLocalState();
+        if (isNubeActiva()) await enviarAccionNube({ action: 'syncFullState', state: appState });
+        e.target.reset();
+        renderConfiguracion();
+        showToast(`Operador ${username} creado con clave inicial 123456.`, 'success');
+      });
+
+      // Restaurar sesión previa si existe
+      const savedSession = sessionStorage.getItem(SESSION_USER_KEY);
+      if (savedSession) {
+        try {
+          iniciarSesionUsuario(JSON.parse(savedSession));
+        } catch (e) {}
+      }
+
+      if (isNubeActiva()) {
+        await sincronizarDesdeNube({ silent: true });
+      }
+    });
+  </script>
+</body>
+</html>
