@@ -1,0 +1,25 @@
+{
+"name": "Fiesta Nacional del Potrillo — Portal de Socios",
+"short_name": "Portal Potrillo",
+"description": "Portal digital de socios de la Fiesta Nacional del Potrillo · Coronel Vidal, Mar Chiquita.",
+"start_url": "./socios.html",
+"scope": "./",
+"display": "standalone",
+"orientation": "portrait",
+"background_color": "#143624",
+"theme_color": "#143624",
+"icons": [
+{
+"src": "./logo.jpg",
+"sizes": "192x192",
+"type": "image/jpeg",
+"purpose": "any"
+},
+{
+"src": "./logo.jpg",
+"sizes": "512x512",
+"type": "image/jpeg",
+"purpose": "any"
+}
+]
+}
